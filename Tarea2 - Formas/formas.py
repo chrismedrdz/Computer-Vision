@@ -78,7 +78,6 @@ def convolucion(imagen, mascarax, mascaray): #Metodo de convolucion discreta par
                 grad = 255
             pixel[i,j] = (grad, grad, grad) # Agregamos el nuevo valor al arreglo de la gradiente
             new_image.putpixel((i, j), (grad, grad, grad))
-            #draw.point((i,j), 'red')
           
     return new_image
 
@@ -99,7 +98,6 @@ def formas(imagen):
             color = random.randint(0,255),random.randint(0,255),random.randint(0,255) # Se genera un color aleatorio para BFS
             n,xs,xy= bfs(image,color,a,b) # Mandamos llamar el metodo bfs
             p = float(n)/float(total) * 100.0 #promedio maximo
-            #porcentaje.append([0, (color)])
             if p > 0.5:
                 centro.append((sum(xs)/len(xs),sum(xy)/len(xy))) # Se obtiene el centro de masa de la imagen
                 porcentaje.append([p, (color)]) # Se agrega a la lista de promedios
@@ -112,40 +110,22 @@ def formas(imagen):
     for i in range(ancho): 
         for j in range(alto):
             if imagen[i,j]==max_c:
-                imagen[i,j]=(255,0,0) #Pintamos en rojo la parte con mayor porcentaje de color
+                imagen[i,j]=(255,0,0) # Pintamos en rojo la parte con mayor porcentaje de color
             
     nueva='output/5. Contornos.png'
     image.save(nueva)
     #return nueva
-    print "Centro de Masa: %s"%centro
-    #dibujar los centros y las etiquetas en las formas 
-    draw = ImageDraw.Draw(image) 
+    print "Centro de Masa: %s"%centro    
+    draw = ImageDraw.Draw(image)  # Se prepara la paleta donde se dibujaran los centros y etiquetas
     m=1
     for i in centro:
-        draw.ellipse((i[0]-2, i[1]-2,i[0]+2,i[1]+2), fill=(0,0,0)) #dibuja los puntos en los centros de las formas
-        draw.text(((i[0]+4,i[1]+4),), str(m), fill=(0,0,0)) #muestra las etiquetas cerca de los centros
+        draw.ellipse((i[0]-2, i[1]-2,i[0]+2,i[1]+2), fill=(0,0,0)) # Se pinta el centro de la figura
+        draw.text(((i[0]+4,i[1]+4),), str(m), fill=(0,0,0)) # Se pinta una etiqueta con el numero de la figura
         m +=1
     nueva2 = 'output/6. Final.png'
     image.save(nueva2)
 
     return nueva2
-
-def bfs(imagen, simbolo, original, cola, ancho, altura):
-    (fila, columna) = cola.pop(0)
-    actual = imagen[fila][columna]
-    if not actual == original:
-        return False
-    imagen[fila][columna] = simbolo
-    for dx in [-1, 0, 1]:
-        for dy in [-1, 0, 1]:
-            candidato = (fila + dy, columna + dx)
-            if candidato[0] >= 0 and candidato[0] < altura and \
-                    candidato[1] >= 0 and candidato[1] < ancho:
-                contenido = imagen[candidato[0]][candidato[1]]
-                if contenido == original:
-                    cola.append(candidato)
-    return True
-
 
 def bfs(image,color,a,b): 
     imagen=image.load()
