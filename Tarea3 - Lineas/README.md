@@ -1,20 +1,21 @@
-# Detección de formas
+# Detección de líneas
 
-Tarea 2: Visión Computacional V6 - ENE-JUN 2015 - FIME - UANL
+Tarea 3: Visión Computacional V6 - ENE-JUN 2015 - FIME - UANL
 
 ## Descripción
 
-- Se acceden a los pixeles clasificados como borde y sus vectores gradiente.
-- Se agrupan los pixeles de borde a componentes conexos.
-- Se calcula la caja envolvente de cada componente conexo.
-- Dentro de cada componente, agrupa a subcomponentes conexos según el ángulo de gradiente.
-- Clasifica los componentes según el número de subcomponentes a clases de formas.
-- Se visualiza en una imagen de salida las formas detectadas, dibujando su caja envolvente en un color de tal manera que cada clase de forma tiene un color distinto.
+- Acceder a los pixeles clasificados como borde y sus vectores gradiente.
+- Agrupar los pixeles de borde según el ángulo de gradiente con una discretización adecuada.
+- Dentro de cada grupo, calcular los componentes conexos que respeten el ángulo de aquel grupo en su continuidad.
+- Calcular la distribución de los tamaños de los componentes conexos.
+- Con la distribución de tamaños, determinar un umbral para descartar los demasiado chicos.
+- Para cada componente que no se descarta, estimar la ecuación de recta de mejor ajuste a los pixeles incluidos en ese componente conexo con regresión lineal.
+- Visualizar en una imagen de salida las líneas detectadas, dibujando su recta de regresión, utilizando un color distinto para cada recta.
 
 ## Requerimientos
 
 - Python 2.7+
-- Librerías NumPy, Pygame y Image instaladas
+- Librerías NumPy, Pygame y PIL instaladas
 - Folders input y output
 
 ## Autor
