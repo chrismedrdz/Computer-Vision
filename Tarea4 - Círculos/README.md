@@ -1,4 +1,4 @@
-# Detección de CÍRCULOS
+# Detección de Círculos
 
 Tarea 4: Visión Computacional V6 - ENE-JUN 2015 - FIME - UANL
 
