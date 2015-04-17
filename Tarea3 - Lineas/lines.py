@@ -42,7 +42,6 @@ def main():
     print ' Ancho: ',w
 
     original = filters.slicing(pixels, w)     # Se guardan los pixeles originales para utilizarlos en la imagen final
-    #pixels = numpy.array(pixels)
 
     gx = filters.convolution(image, SobelY)  # Se aplica mascara Sobel en X y se obtienen los valores gx para de pixel
     gy = filters.convolution(image, SobelY)  # Se aplica mascara Sobel en Y y se obtienen los valores gy para de pixel
@@ -50,8 +49,6 @@ def main():
 
     mag = filters.normalize(filters.euclidean(gx, gy)) # Se obtienen las magnitudes del vector gradiente de cada pixel
     
-    #print len(mag)
-
     resultado = list()
 
     results = [[(None,None) for x in range(w)] for y in range(h)] 
