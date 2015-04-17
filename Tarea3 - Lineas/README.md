@@ -10,6 +10,7 @@ Tarea 3: Visión Computacional V6 - ENE-JUN 2015 - FIME - UANL
 - Con la distribución de tamaños, determinar un umbral para descartar los demasiado chicos.
 - Para cada componente que no se descarta, estimar la ecuación de recta de mejor ajuste a los pixeles incluidos en ese componente conexo con regresión lineal.
 - Visualizar en una imagen de salida las líneas detectadas, dibujando su recta de regresión, se marcan las líneas detectadas.
+- Se marcan las líneas horizontales en azul, las verticales en rojo y las diagonales en verde.
 ## Requerimientos
 
 - Python 2.7+
