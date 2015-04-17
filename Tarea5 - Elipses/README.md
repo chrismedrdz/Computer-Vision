@@ -4,6 +4,7 @@ Tarea 5: Visión Computacional V6 - ENE-JUN 2015 - FIME - UANL
 
 ## Descripción
 
+- Método Cuerda Tangente
 - Acceder a los pixeles clasificados como borde y sus vectores gradiente.
 - Detectar las formas que tengan un numero elevado de direcciones de gradiente
 - Dentro de cada forma de este tipo, calcular para cada par de pixeles la intersección de los tangentes de sus gradientes (T) y su punto intermedio (M).
