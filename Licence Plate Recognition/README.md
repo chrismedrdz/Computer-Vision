@@ -25,10 +25,6 @@ Proyecto Final: Visión Computacional V6 - ENE-JUN 2015 - FIME - UANL
 - Librería Pytesser
 - Imágenes de carros matriculados colocadas en folder 'input'
 
-
-## Requerimientos
-
-- 
 ## Autor
 
 Christopher Medina Rodríguez - 1488028
