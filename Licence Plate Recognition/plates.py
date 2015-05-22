@@ -152,18 +152,19 @@ def detect_plate():
   dilated = cv2.dilate(thresh,kernel,iterations = 13) # dilate
   #contours, hierarchy = cv2.findContours(dilated,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE) # get contours
 
-
+  '''
   #gray = cv2.cvtColor(imgPlate,cv2.COLOR_BGR2GRAY)
   blur = cv2.GaussianBlur(imgPlate,(5,5),0)
   thresh = cv2.adaptiveThreshold(blur,255,1,1,11,2)
   contours,hierarchy = cv2.findContours(thresh,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
   cv2.drawContours(imgPlate,contours,-1,(0,255,0),3)
-
-
+  '''
+  
   imgPlate = Image.fromarray(imgPlate)
   imgPlate.save('output/14. Mejorada.png')
 
-  #im = cv2.imread('output/14. Mejorada.png')
+  filtered = Image.fromarray(filtered)
+  filtered.save('output/15. Mas Mejorada.png')
 
   # Se obtiene por OCR el String de la Placa Detectada
   text = image_to_string(imgPlate)
