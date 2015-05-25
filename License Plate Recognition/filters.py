@@ -319,7 +319,7 @@ def bfs(imagen,actual,color):
                         cordenadas.append((x,y+1))
             except:
                 pass
-    return con,color,centro_i,centro_j,cordenadas,imagen
+    return con,color,cordenadas,imagen
 
 def bfs2(img,ancho,alto):
     cola = []

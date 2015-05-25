@@ -7,14 +7,15 @@ import os
 import Image, ImageDraw, ImageFont
 import random
 import pygame
-import  cv2
+import cv2
+import cv2.cv as cv
 from pygame import mouse
 import numpy as np
 
-from pytesser import *
-
 import ProcessImage
 import DetectRegion
+import OCR
+import filters
 
 # LISTADO DE COLORES
 RED = (255,0,0)
@@ -59,11 +60,28 @@ HAND_CURSOR = ((16, 16), (5, 1), _HCURS, _HMASK)
 
 screen = pygame.display.get_surface() 
 
+icon = pygame.image.load('logo.png')
+icon = pygame.transform.scale(icon, (32, 32))
+pygame.display.set_icon(icon)
+pygame.display.set_caption('Licence Plate Recognition') # Le ponemos nombre a la ventana
+screen = pygame.display.set_mode((600, 600)) # Se ajusta el tamaño de la ventana
+
 size = 440, 330 # Tamaño de la imagen a mostrar en GUI
 CURRENT_IMAGE = 0
 file_list = []
+font = pygame.font.SysFont("Arial",38)
 
 clock = pygame.time.Clock()
+
+#---------------------------------------------------------------------
+# Rutinas Principales
+#---------------------------------------------------------------------
+  # PIL to OpenCV Image
+def pil_to_cvimage(img):
+  cv_img = np.array(img) 
+  # Convert RGB to BGR 
+  cv_img = cv_img[:, :, ::-1].copy()
+  return cv_img
 
 def text_objects(text, font, color):
     textSurface = font.render(text, True, color)
@@ -73,19 +91,62 @@ def ProcessPlate(img):
   GrayScale = ProcessImage.GrayScalePlate(img)
   MiddleFilter=ProcessImage.MiddleFilterPlate(GrayScale)
   Difference=ProcessImage.DifferencePlate(GrayScale,MiddleFilter)
-  #Convolution=ProcessImage.Convolution(Difference,SobelX,SobelY)
-  #Thresholding=ProcessImage.Thresholding(Convolution)
   Binarization=ProcessImage.BinarizationPlate(GrayScale)
 
   return Difference
 
+def print_string(texto):
+
+  LicenceNumberArea = pygame.draw.rect(screen, GRAY,(380,419,202,52)) # Limpiamos la zona con el color de fondo de ventana
+
+  LicenceNumberArea = pygame.draw.line(screen, (0, 0, 0), (380, 470), (580, 470),2) # Linea de la matricula
+
+  TextSurf, TextRect = text_objects(texto, font, RED)
+  TextRect.center = (480, 445)
+  screen.blit(TextSurf, TextRect)
+
+def print_image(str_path):
+  picture = pygame.image.load(str_path)  
+  rect = picture.get_rect()
+  width, height = rect.size   # Get Image dimensions
+
+  LicencePlateArea = pygame.draw.rect(screen, WHITE,(50,420,200,50)) # Area donde mostraremos la matriculo detectada
+  # Enmarcamos en un recuadro el area de la matricula
+  pygame.draw.line(screen, (0, 0, 0), (50, 420), (250, 420),2) # Linea arriba
+  pygame.draw.line(screen, (0, 0, 0), (50, 470), (250, 470),2) # Linea abajo
+  pygame.draw.line(screen, (0, 0, 0), (50, 420), (50, 470),2) # Linea izquierda
+  pygame.draw.line(screen, (0, 0, 0), (250, 420), (250, 470),2) # Linea derecha
+
+  if width <= 200:
+    x = 51+((200-width)/2)
+  else:
+    x = 51
+
+  rect = rect.move((x, 423))
+  screen.blit(picture, rect)
+
+def validate(cnt):    
+    rect=cv2.minAreaRect(cnt)  
+    box=cv2.cv.BoxPoints(rect) 
+    box=np.int0(box)  
+    output=False
+    width=rect[1][0]
+    height=rect[1][1]
+    if ((width!=0) & (height!=0)):
+        if (((height/width>2) & (height>width)) | ((width/height>2) & (width>height))):
+            if((height*width<5000) & (height*width>200)): 
+                output=True
+    return output
+
 def detect_plate():
   global CURRENT_IMAGE
+
+  print_string('Wait')
 
   image_path = 'input/'+file_list[CURRENT_IMAGE]
   img=Image.open(image_path) # Abrir la imagen
 
-  print ' \n|| Imagen a Analizar: '+image_path+' || \n'
+  print ' \n|| Imagen a Analizar: '+image_path.replace("input/","")+' || \n'
 
   '''
   En esta fase Procesamos la imagen del auto para aplicarle los filtros necesarios para poder
@@ -97,8 +158,6 @@ def detect_plate():
 
   print '>> Iniciando Procesamiento de Imagen'
 
-  #PreProcessImage(img)
-  
   GrayScale = ProcessImage.GrayScale(img)
   MiddleFilter=ProcessImage.MiddleFilter(GrayScale)
   Difference=ProcessImage.Difference(GrayScale,MiddleFilter)
@@ -115,66 +174,69 @@ def detect_plate():
   # Se detecta la region en donde pudiera estar la placa
   shapes,x,y=DetectRegion.DetectShapes(Dilated)
   FramePlate=DetectRegion.FramePlate(img,x,y)
+  RegionPlate=DetectRegion.GetRegion(img,x,y)
 
   picture = pygame.image.load(FramePlate)
   picture = pygame.transform.scale(picture, size)
   rect = picture.get_rect()
   rect = rect.move((80, 70))
   screen.blit(picture, rect)
-  pygame.display.update() # Mostrar en pantalla imagen con recuadro rojo de la posible placa
+  pygame.display.update()
 
-  print '>> Posible Region de la Placa encontrada'
+  print '>> Posible Region de la Placa encontrada'  
+
+  imgPlate = cv2.imread('output/10. Region Placa.png')
+  imgPlateGray = cv2.imread('output/10. Region Placa.png',0)
+
+  ret,gray = cv2.threshold(imgPlateGray,125,255,0)
+  gray2 = gray.copy()
+  mask = np.zeros(gray.shape,np.uint8)
+
+  contours, hier = cv2.findContours(gray,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
+  for cnt in contours:
+    epsilon = 0.05*cv2.arcLength(cnt,True)
+    approx = cv2.approxPolyDP(cnt,epsilon,True)
+
+    if validate(approx): # Si el Area del contorno está entre 100 y 5000 pixeles
+      cv2.drawContours(imgPlate,[cnt],0,0,0)
+      #cv2.imshow('xD',imgPlate)
+      #cv2.drawContours(mask,[approx],0,255,-1)
+      #cv2.imshow('2xd',mask)
+      # Se encuentran las dimensiones de la forma encontrada
+      x,y,w,h = cv2.boundingRect(approx)
+      # Se recorta la imagen con las dimensiones de la forma encontrada
+      PlateCrop = imgPlate[y:y+h,x:x+w]
+
+  cv2.imwrite('output/11. Placa Recortada.png',PlateCrop)
+  img = Image.open('output/11. Placa Recortada.png').convert('RGB')
+
+  EqualizedPlate=ProcessImage.EqualizePlate(img)
+
+  original = Image.open('output/12. Placa Equalizada.png')
+
+  width, height = original.size # Se obtienen las dimensiones de la imagen
+  left = width * 0.02
+  top = height * 0.24
+  cropped_plate = original.crop(   ( int(left) , int(top), int(width-left), int(height-top)  )   )
+  cropped_plate.save('output/13. Placa Cortada.png')
+
+  # Se escala la imagen de la placa para mostrarla en GUI
+  baseheight = 45
+  hpercent = (baseheight / float(cropped_plate.size[1]))
+  wsize = int((float(cropped_plate.size[0]) * float(hpercent)))
+  escaled_plate = cropped_plate.resize((wsize, baseheight), Image.ANTIALIAS)
+  str_path = 'output/14. Placa Escalada45px.png'
+  escaled_plate.save(str_path)
+
+  # Se muestra en la GUI la imagen de la Placa
+  print_image(str_path)
   
-  
-  imgPlate = cv2.imread('output/10. Region Placa.png',0)
-
-  thresh_value = 100;
-  max_thresh = 255;
-
-  #                       src gray, threshold_value, max_BINARY_value, threshold_type
-  ret,thresh = cv2.threshold(imgPlate,    127,                255,               1) # Se obtiene el umbral 
-  cv2.bitwise_not(imgPlate, imgPlate);
-
-
-  #Find bounding box
-  #Bb=findBB(imgPlate);
-
-
-  filtered = cv2.adaptiveThreshold(imgPlate.astype(np.uint8), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 41, 3)
-  
-  # Some morphology to clean up image
-  kernel = np.ones((5,5), np.uint8)
-  #kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
-  opening = cv2.morphologyEx(filtered, cv2.MORPH_OPEN, kernel)
-  closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
-
-  #thresh = cv2.threshold(filtered,150,255,cv2.THRESH_BINARY_INV) # threshold
-  dilated = cv2.dilate(thresh,kernel,iterations = 13) # dilate
-  #contours, hierarchy = cv2.findContours(dilated,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE) # get contours
-
-  '''
-  #gray = cv2.cvtColor(imgPlate,cv2.COLOR_BGR2GRAY)
-  blur = cv2.GaussianBlur(imgPlate,(5,5),0)
-  thresh = cv2.adaptiveThreshold(blur,255,1,1,11,2)
-  contours,hierarchy = cv2.findContours(thresh,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
-  cv2.drawContours(imgPlate,contours,-1,(0,255,0),3)
-  '''
-  
-  imgPlate = Image.fromarray(imgPlate)
-  imgPlate.save('output/14. Mejorada.png')
-
-  filtered = Image.fromarray(filtered)
-  filtered.save('output/15. Mas Mejorada.png')
-
   # Se obtiene por OCR el String de la Placa Detectada
-  text = image_to_string(imgPlate)
-  #text = 'SPK-41-84'
+  ocr_image_cv = OCR.PrepareImage('output/13. Placa Cortada.png');
+  text = OCR.Recognize(ocr_image_cv)
 
-  font = pygame.font.SysFont("Arial",38)
-  TextSurf, TextRect = text_objects(text, font, RED)
-  TextRect.center = (300, 445)
-  screen.blit(TextSurf, TextRect)
-
+  # Se muestra en la GUI el Numero de Matricula detectada
+  print_string(text)
   print '\nMatricula: '+text
 
   return False
@@ -226,15 +288,12 @@ def button(msg,x,y,w,h,ic,ac,action=None):
     pygame.draw.rect(screen, ic,(x,y,w,h))
 
     if x+w > mouse[0] > x and y+h > mouse[1] > y:
-        #pygame.draw.rect(screen, ac,(x,y,w,h))
         pygame.mouse.set_cursor(*HAND_CURSOR)
         if click[0] == 1 and action != None:
           action()
 
     else:
-        pygame.mouse.set_cursor(*DEFAULT_CURSOR)
-
-    
+        pygame.mouse.set_cursor(*DEFAULT_CURSOR)    
 
     smallText = pygame.font.SysFont("Arial",20)
     textSurf, textRect = text_objects(msg, smallText,BLACK)
@@ -244,7 +303,6 @@ def button(msg,x,y,w,h,ic,ac,action=None):
 def createGUI():
   screen.fill(GRAY) # Se aplica fondo de la ventana
 
-  font = pygame.font.SysFont("Arial",40)
   TextSurf, TextRect = text_objects("Licence Plate Recognition", font, BLACK)
   TextRect.center = (300, 30)
   screen.blit(TextSurf, TextRect)
@@ -256,12 +314,16 @@ def createGUI():
   rect = picture.get_rect()
 
 
-  LicenceNumberArea = pygame.draw.rect(screen, WHITE,(200,420,200,50)) # Area donde mostraremos la matriculo detectada
+  LicenceNumberArea = pygame.draw.rect(screen, WHITE,(50,420,200,50)) # Area donde mostraremos la matricula detectada
   # Enmarcamos en un recuadro el area de la matricula
-  pygame.draw.line(screen, (0, 0, 0), (200, 420), (400, 420),2) # Linea arriba
-  pygame.draw.line(screen, (0, 0, 0), (200, 470), (400, 470),2) # Linea abajo
-  pygame.draw.line(screen, (0, 0, 0), (200, 420), (200, 470),2) # Linea izquierda
-  pygame.draw.line(screen, (0, 0, 0), (400, 420), (400, 470),2) # Linea derecha
+  pygame.draw.line(screen, (0, 0, 0), (50, 420), (250, 420),2) # Linea arriba
+  pygame.draw.line(screen, (0, 0, 0), (50, 470), (250, 470),2) # Linea abajo
+  pygame.draw.line(screen, (0, 0, 0), (50, 420), (50, 470),2) # Linea izquierda
+  pygame.draw.line(screen, (0, 0, 0), (250, 420), (250, 470),2) # Linea derecha
+
+
+  # Linea donde se escribira el numero de matricula
+  pygame.draw.line(screen, (0, 0, 0), (380, 470), (580, 470),2) # Linea abajo
   
   rect = rect.move((80, 70))
   screen.blit(picture, rect)
@@ -289,8 +351,6 @@ if __name__ == "__main__":
     im.thumbnail(size, Image.ANTIALIAS)
     images.append(im) # Se carga la imagen de entrada y se convierte a RGB
 
-  pygame.display.set_caption('Licence Plate Recognition') # Le ponemos nombre a la ventana
-  screen = pygame.display.set_mode((600, 600)) # Se ajusta el tamaño de la ventana
   createGUI()
 
   while True:
@@ -301,5 +361,4 @@ if __name__ == "__main__":
       button("Next >>",370,530,100,50,GRAY2,GRAY,next_image)
       button("Detect Plate!",250,480,100,50,RED,GRAY,detect_plate)
       pygame.display.update()
-      #pygame.display.flip()
-      clock.tick(8)
+      clock.tick(5)

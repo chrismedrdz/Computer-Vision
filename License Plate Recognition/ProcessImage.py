@@ -2,18 +2,16 @@
 # -*- coding: utf-8 -*-
 
 # Librerias
-from PIL import Image, ImageTk
+from PIL import Image
 import numpy as np
 import math
-import random
-import ImageDraw
-from time import *
 import filters
+from scipy.signal import wiener
+import operator
 
 # Mascaras de convolucion utilizadas
 SobelX = [[-1.0, 0.0, 1.0], [-2.0, 0.0, 2.0], [-1.0, 0.0, 1.0]]
 SobelY = [[1.0, 2.0, 1.0], [0.0, 0.0, 0.0], [-1.0, -2.0, -1.0]]
-
 
 def GrayScale(ProcessImage):
 	grises = filters.gray_scale(ProcessImage)
@@ -62,28 +60,24 @@ def Dilatation(ProcessImage,pixels):
 
 	return dilated
 
-# Rutinas para la region de la Placa Detectada
-def GrayScalePlate(ProcessImage):
-	grises = filters.gray_scale(ProcessImage)
-	grises.save('output/11. Placa Grises.png')
+# http://effbot.org/zone/pil-histogram-equalization.htm
+# Se obtienen las crestas del histograma de la imagen se erosionan y los valles de dilatan
+def equalize(histo):
+    table = []
 
-	return grises
+    for b in range(0, len(histo), 256):
+        step = reduce(operator.add, histo[b:b+256]) / 255
+        n = 0
+        for i in range(256):
+            table.append(n / step)
+            n = n + histo[i+b]
 
-def BinarizationPlate(ProcessImage):
-	binarize = filters.binarizacion(ProcessImage)
-	binarize.save('output/12. Placa Binarizada.png')
+    return table
 
-	return binarize
+def EqualizePlate(ProcessImage):
+	lut = equalize(ProcessImage.histogram())
+	im = ProcessImage.point(lut)
 
+	im.save('output/12. Placa Equalizada.png')
 
-def MiddleFilterPlate(ProcessImage):
-	medio = filters.filtro_medio(ProcessImage)
-	medio.save('output/12. Placa Filtro Medio.png')
-
-	return medio
-
-def DifferencePlate(GrayScale,MiddleFilter):
-	diferencia = filters.filtro_diferencia_plate(GrayScale,MiddleFilter)
-	diferencia.save('output/13. Placa Filtro Diferencia.png')
-
-	return diferencia
+	return wiener(ProcessImage)
