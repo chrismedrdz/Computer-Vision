@@ -110,6 +110,8 @@ def print_image(str_path):
   rect = picture.get_rect()
   width, height = rect.size   # Get Image dimensions
 
+  LicenceNumberArea = pygame.draw.rect(screen, GRAY,(50,420,350,52)) # Limpiamos la zona con el color de fondo de ventana
+
   LicencePlateArea = pygame.draw.rect(screen, WHITE,(50,420,200,50)) # Area donde mostraremos la matriculo detectada
   # Enmarcamos en un recuadro el area de la matricula
   pygame.draw.line(screen, (0, 0, 0), (50, 420), (250, 420),2) # Linea arriba
@@ -134,7 +136,7 @@ def validate(cnt):
     height=rect[1][1]
     if ((width!=0) & (height!=0)):
         if (((height/width>2) & (height>width)) | ((width/height>2) & (width>height))):
-            if((height*width<5000) & (height*width>200)): 
+            if((height*width<5000) & (height*width>100)): 
                 output=True
     return output
 
@@ -192,6 +194,8 @@ def detect_plate():
   gray2 = gray.copy()
   mask = np.zeros(gray.shape,np.uint8)
 
+  cont = 0
+
   contours, hier = cv2.findContours(gray,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
   for cnt in contours:
     epsilon = 0.05*cv2.arcLength(cnt,True)
@@ -199,13 +203,13 @@ def detect_plate():
 
     if validate(approx): # Si el Area del contorno está entre 100 y 5000 pixeles
       cv2.drawContours(imgPlate,[cnt],0,0,0)
-      #cv2.imshow('xD',imgPlate)
-      #cv2.drawContours(mask,[approx],0,255,-1)
-      #cv2.imshow('2xd',mask)
-      # Se encuentran las dimensiones de la forma encontrada
       x,y,w,h = cv2.boundingRect(approx)
       # Se recorta la imagen con las dimensiones de la forma encontrada
       PlateCrop = imgPlate[y:y+h,x:x+w]
+      cont += 1
+
+  if cont == 0:
+    PlateCrop = imgPlate
 
   cv2.imwrite('output/11. Placa Recortada.png',PlateCrop)
   img = Image.open('output/11. Placa Recortada.png').convert('RGB')
@@ -214,11 +218,18 @@ def detect_plate():
 
   original = Image.open('output/12. Placa Equalizada.png')
 
-  width, height = original.size # Se obtienen las dimensiones de la imagen
-  left = width * 0.02
-  top = height * 0.24
-  cropped_plate = original.crop(   ( int(left) , int(top), int(width-left), int(height-top)  )   )
-  cropped_plate.save('output/13. Placa Cortada.png')
+  if cont != 0:
+    width, height = original.size # Se obtienen las dimensiones de la imagen
+    left = width * 0.03
+    top = height * 0.24
+    cropped_plate = original.crop(   ( int(left) , int(top), int(width-left), int(height-top)  )   )
+    cropped_plate.save('output/13. Placa Cortada.png')
+  else: 
+    width, height = original.size # Se obtienen las dimensiones de la imagen
+    left = width * 0.15
+    top = height * 0.3
+    cropped_plate = original.crop(   ( int(left) , int(top), int(width-left), int(height-top)  )   )
+    cropped_plate.save('output/13. Placa Cortada.png')
 
   # Se escala la imagen de la placa para mostrarla en GUI
   baseheight = 45

@@ -36,8 +36,8 @@ def PrepareImage(img_path):
     display = cv2.cvtColor(display, cv2.COLOR_BGR2GRAY)
     thresh = 10
     #display = cv2.threshold(display, thresh, 255, cv2.THRESH_BINARY)[1]
-    kernel = np.ones((5,5),np.uint8)
-    erosion_iters = 0  
+    kernel = np.ones((2,2),np.uint8)
+    erosion_iters = 1
     display = cv2.erode(display,kernel, iterations = erosion_iters)
 
 
