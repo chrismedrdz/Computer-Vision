@@ -50,7 +50,7 @@ En cuanto a trabajo a futuro con el este proyecto se buscará mejorar la segment
 + <b>Automatic Number Plate Recognition in Shogun</b>
   - <i>http://nbviewer.ipython.org/gist/kislayabhi/89b985e5b78a6f56029a</i>
 
-+ <b>ALPR using Python and OpenXV</b>
++ <b>ALPR using Python and OpenCV</b>
   - <i>http://sajjad.in/content/ALPR_paper.pdf</i>
 
 + <b>Image Database: Mastering OpenCV with Practical Computer Vision Projects, Ch-5</b>
