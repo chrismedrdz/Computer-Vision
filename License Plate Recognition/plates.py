@@ -195,7 +195,6 @@ def detect_plate():
   mask = np.zeros(gray.shape,np.uint8)
 
   cont = 0
-
   contours, hier = cv2.findContours(gray,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
   for cnt in contours:
     epsilon = 0.05*cv2.arcLength(cnt,True)
