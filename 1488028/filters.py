@@ -696,3 +696,26 @@ def pixeles_blancos(img):
                 otros.append((i,j))
     
     return blancos,otros
+
+def bfs_origen(im, origen, color):
+  pix = im.load()
+  w, h = im.size
+  q = []
+  coords = []
+  q.append(origen)
+  original = pix[origen]
+  while len(q) > 0:
+    (x, y) = q.pop(0)
+    actual = pix[x, y]
+    if actual == original or actual == color:
+      for dx in [-1, 0, 1]:
+        for dy in [-1, 0, 1]:
+          i, j = (x + dx, y + dy)
+          if i >= 0 and i < w and j >= 0 and j < h:
+            contenido = pix[i, j]
+            if contenido == original:
+              pix[i, j] = color
+              coords.append((i, j))
+              q.append((i, j))
+  return len(coords), coords
+

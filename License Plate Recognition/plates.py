@@ -8,7 +8,7 @@ import Image, ImageDraw, ImageFont
 import random
 import pygame
 import cv2
-import cv2.cv as cv
+import cv
 from pygame import mouse
 import numpy as np
 
