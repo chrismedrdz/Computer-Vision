@@ -30,6 +30,7 @@ It is proposed that the city has various specialized agency depending size, wher
 <BR/>
 I propose for collect images automatically, placing various sensors at traffic lights, where you capture the image of the pavement by a camera with good resolution if a car suffers a abrupt  movement, ie, has passed above a anomalie. The capture will be shot when the car has moved.
 <BR/>
+This collected images will be send to city agencies from process and determien if its necessary repair the road in this zone. For best performance, it is suggested implemented a distributed system so that before it send image of the possible anomaly, some servers really validate the real asphalt failures before sending to agencies.
 
 ## References
 
