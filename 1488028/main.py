@@ -67,8 +67,6 @@ if __name__ == "__main__":
 	path_trace = cv2.add(erode,thresh_dilated)
 	cv2.imwrite('output/07. path trace.png', path_trace)
 
-
-	cont = 0
 	_, contours, hier = cv2.findContours(erode,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
 	
 	# Find the index of the largest contour
@@ -106,6 +104,7 @@ if __name__ == "__main__":
 
 	# sure background area
 	sure_bg = cv2.dilate(opening,kernel,iterations=3)
+	cv2.imwrite('output/10. anomalies_shapes.png', sure_bg)
 
 	# Finding sure foreground area
 	dt = cv2.distanceTransform(opening, 2, 3)
@@ -113,13 +112,14 @@ if __name__ == "__main__":
 	_, sure_fg = cv2.threshold(dt, 100, 255, cv2.THRESH_BINARY)
 
 	sure_fg = np.uint8(thresh)
+	#cv2.imshow('sure_fg',sure_fg)
+
 	unknown = cv2.subtract(sure_bg,sure_fg)
+	#cv2.imshow('unknown',unknown)
 
 	# Marker labelling
 	_, markers = cv2.connectedComponents(sure_fg)
-
-	# Add one to all labels so that sure background is not 0, but 1
-	markers = markers+1
+	markers = markers+0
 
 	# Now, mark the region of unknown with zero
 	markers[unknown==255] = 0
@@ -127,10 +127,34 @@ if __name__ == "__main__":
 	markers = cv2.watershed(img,markers)
 	img[markers == -1] = [0,0,255]
 
-	cv2.imwrite('output/10. anomalies.png', img)
+	cv2.imwrite('output/11. anomalies.png', img)
 
-	surface = pygame.image.load('output/10. anomalies.png')
-	screen = pygame.display.get_surface() 
+
+	# Find anomalies contours for display results in console
+	_, contours2, hier = cv2.findContours(sure_bg,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
+	areas = [cv2.contourArea(c) for c in contours2]
+	
+	anomalies = list() # array for anomalies detected
+	cont=1
+	for a in range(len(areas)):
+		if areas[a] < 1000 : # Omits external contours
+			anomalies.append(areas)
+			print '\tAnomalie # '+str(cont)+' : crash area -> '+str(areas[a])
+			cont+=1
+
+
+	print '\nDetect '+str(cont-1)+' anomalies in asphalt pavement.'
+
+	if max(anomalies) > 200:
+		print '\n\n\t Its necessary repair asphalt with urgency.'
+	elif max(anomalies) < 200 and max(anomalies) > 100:
+		print '\n\n\t Its necessary repair asphalt with low priority.'
+	else:
+		print '\n\n\t Its not necessary repair asphalt.'
+
+
+	surface = pygame.image.load('output/11. anomalies.png')
+	screen = pygame.display.get_surface()
 
 	while True:
 	  for event in pygame.event.get():
