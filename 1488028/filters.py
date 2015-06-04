@@ -681,9 +681,10 @@ def filtro_diferencia_plate(grises,medio):
             dif=(nueva-original)
             pixeles[i,j]=(dif,dif,dif)
     return img
+
 # Se agregan todos los pixeles blancos encontrados para despues realizar dilatacion
 def pixeles_blancos(img):
-    blancos=[] # En esta cola se almacentaran los pixeles blancos encontrados
+    blancos=[] # En esta cola se almacenaran los pixeles blancos encontrados
     otros=[] # En esta cola se almacentaran todos los demas pixeles
     pixeles=img.load()
     ancho,alto = img.size

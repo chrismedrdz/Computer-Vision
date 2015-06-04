@@ -8,54 +8,97 @@ import Image, ImageDraw, ImageFont
 import random
 import pygame
 import numpy as np
+
 import cv2
-import cv
 import filters
 
-# LISTADO DE COLORES
-RED = (255,0,0)
-GREEN = (0,255,0)
-BLUE = (0,0,255)
-MAGENTA = (255,0,255)
-YELLOW = (255,255,0)
-CYAN = (0,255,255)
-ORANGE = (255,128,0)
-PURPLE = (76,0,173)
+def scale_image(img):
 
-COLORS = [RED,GREEN,BLUE,MAGENTA,YELLOW,CYAN,ORANGE,PURPLE]
+	height, width, _ = img.shape
 
-def validate(cnt):    
-    rect=cv2.minAreaRect(cnt)  
-    box=cv.cv.BoxPoints(rect) 
-    box=np.int0(box)  
-    output=False
-    width=rect[1][0]
-    height=rect[1][1]
-    if ((width!=0) & (height!=0)):
-        if((height*width<5000) & (height*width>100)): 
-            output=True
-    return output
+	baseheight = 500
+	hpercent = (baseheight / float(height))
+	wsize = int((float(width) * float(hpercent)))
+	scaled = cv2.resize(img, (wsize, baseheight)) 
+	cv2.imwrite('output/01. scaled.png',scaled)
+	screen = pygame.display.set_mode((wsize, baseheight)) 
 
-#http://opencv-python-tutroals.readthedocs.org/en/latest/py_tutorials/py_imgproc/py_watershed/py_watershed.html
+	return scaled
+
 if __name__ == "__main__":
 
-	pygame.init() # Se inicializa pygame para la creacion de la ventana de salida
+	pygame.init() # Init pygame for GUI
 
 	im = Image.open('input/1.png').convert('RGB') # Se carga la imagen de entrada y se convierte a RGB
 	width, height = im.size
-	screen = pygame.display.set_mode((width, height)) # Se ajusta el tamaño de la ventana a las medidas de la imagen
 	pygame.display.set_caption('Ordinary Test') # Le ponemos nombre a la ventana   
 
-	#gray = filters.gray_scale(im)
-
+	# Get image input
 	img = cv2.imread('input/1.png')
+
+	# Scale the Image to 500 baseHeight
+	scaled = scale_image(img)
+	#Set display dimensions
+
+	#Convert image to GRAY SCALE
+	gray = cv2.cvtColor(scaled,cv2.COLOR_BGR2GRAY)
+	cv2.imwrite('output/02. gray.png',gray)
+
+	#threasholding the grayscale image
+	ret, thresh = cv2.threshold(gray,100,255, cv2.THRESH_BINARY)
+	cv2.imwrite('output/03. threshold.png',thresh)
+
+	# Erode image 7 times
+	kernel = np.ones((2,2),np.uint8)
+
+	erode = cv2.erode(thresh,kernel, iterations = 7)
+	#erode(gray,Erode,Mat(),Point(2,2),7)
+	cv2.imwrite('output/04. eroded.png',erode)
+
+	# Dilate image 7 times
+	dilate = cv2.dilate(thresh,kernel,iterations=1)
+	#dilate=dilate(gray,Dilate,Mat(),Point(2,2),7)
+	cv2.imwrite('output/05. dilated.png',dilate)
+
+	# Get the thresholding of binary inverted
+	ret, thresh_dilated = cv2.threshold(erode,1, 50, cv2.THRESH_BINARY_INV)
+	cv2.imwrite('output/06. thresh dilated.png', thresh_dilated)
+
+	path_trace = cv2.add(erode,thresh_dilated)
+	cv2.imwrite('output/07. path trace.png', path_trace)
+
+
+	cont = 0
+	_, contours, hier = cv2.findContours(erode,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
+	
+	# Find the index of the largest contour
+	areas = [cv2.contourArea(c) for c in contours]
+	max_index = np.argmax(areas)
+
+	img = cv2.drawContours(scaled, contours, max_index, (255,255,255), -1)
+	cv2.imwrite('output/08. contour road.png',img)
+
+
+	img = Image.open('output/08. contour road.png').convert('RGB')
+	new_image = Image.new("RGB", (img.size[0],img.size[1]))
+
+	im = Image.open('output/01. scaled.png').convert('RGB')
+
+	for i in range(img.size[0]):
+		for j in range (img.size[1]):
+			(r,g,b)=img.getpixel((i,j))
+
+			if (r,g,b) == (255,255,255):
+				new_image.putpixel((i, j), im.getpixel((i,j)) )
+			else:
+				new_image.putpixel((i, j), (0, 255, 0))
+
+	new_image.save('output/09. road.png')
+
+
+	img = cv2.imread('output/09. road.png')
 	gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-	ret, thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-
-
-	cv2.imwrite('output/1. threshold.png',thresh)
-	#img = Image.open('output/1. threshold.png').convert('RGB')
-
+	_, thresh = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
 
 	# noise removal
 	kernel = np.ones((3,3),np.uint8)
@@ -65,56 +108,28 @@ if __name__ == "__main__":
 	sure_bg = cv2.dilate(opening,kernel,iterations=3)
 
 	# Finding sure foreground area
-	dist_transform = cv2.distanceTransform(opening,cv2.DIST_L2,5)
-	ret, sure_fg = cv2.threshold(dist_transform,0.7*dist_transform.max(),255,0)
+	dt = cv2.distanceTransform(opening, 2, 3)
+	dt = ((dt - dt.min()) / (dt.max() - dt.min()) * 255).astype(np.uint8)
+	_, sure_fg = cv2.threshold(dt, 100, 255, cv2.THRESH_BINARY)
 
-	# Finding unknown region
-	sure_fg = np.uint8(sure_fg)
+	sure_fg = np.uint8(thresh)
 	unknown = cv2.subtract(sure_bg,sure_fg)
-	cv2.imwrite('output/2. unknown.png',unknown)
 
-	cont = 0
-	image, contours, hierarchy = cv2.findContours(unknown,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
-	
-	for cnt in contours:
-		epsilon = 0.05*cv2.arcLength(cnt,True)
-		approx = cv2.approxPolyDP(cnt,epsilon,True)
-
-	if validate(approx): # Si el Area del bache esta entre 100 y 5000 pixeles
-	    cv2.drawContours(img,[cnt],255,0,0)
-	    x,y,w,h = cv2.boundingRect(approx)
-	    # Se recorta la imagen con las dimensiones de la forma encontrada
-	    ImageCrop = img[y:y+h,x:x+w]
-	    cont += 1
-
-	if cont == 0:
-		ImageCrop = img
-
-	#cv2.imwrite('output/11. Placa Recortada.png',PlateCrop)
-
-
-	cv2.imshow('result',img)
-
-
-
-
-	'''
 	# Marker labelling
-	ret, markers = cv2.connectedComponents(sure_fg)
+	_, markers = cv2.connectedComponents(sure_fg)
+
 	# Add one to all labels so that sure background is not 0, but 1
 	markers = markers+1
+
 	# Now, mark the region of unknown with zero
 	markers[unknown==255] = 0
+
 	markers = cv2.watershed(img,markers)
-	img[markers == -1] = [255,0,0]
-	'''
+	img[markers == -1] = [0,0,255]
 
-	#cv2.imshow('result',img)
+	cv2.imwrite('output/10. anomalies.png', img)
 
-
-	surface = pygame.image.load('output/2. unknown.png') # Se despliega la imagen en la ventana
-	#surface = pygame.image.fromstring(corners.tostring(),corners.size,'RGB')
-
+	surface = pygame.image.load('output/10. anomalies.png')
 	screen = pygame.display.get_surface() 
 
 	while True:
